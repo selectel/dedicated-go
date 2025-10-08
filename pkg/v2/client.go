@@ -35,7 +35,7 @@ const (
 	defaultExpectContinueTimeout = 1
 )
 
-// ServiceClient stores details that are needed to work with Selectel Managed Kubernetes Service API.
+// ServiceClient stores details that are needed to work with Selectel Dedicated Servers API.
 type ServiceClient struct {
 	// HTTPClient represents an initialized HTTP client that will be used to do requests.
 	HTTPClient *http.Client

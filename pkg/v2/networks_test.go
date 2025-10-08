@@ -16,7 +16,7 @@ func TestServiceClient_Networks(t *testing.T) {
 			"result": [
 				{
 					"uuid": "net1",
-					"telematic_type": "INET"
+					"telematics_type": "INET"
 				}
 			]
 		}`

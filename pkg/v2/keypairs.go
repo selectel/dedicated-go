@@ -35,7 +35,7 @@ func (s SSHKeys) FindOneByPK(pk string) *SSHKey {
 }
 
 func (client *ServiceClient) SSHKeys(ctx context.Context) (SSHKeys, *ResponseResult, error) {
-	url := client.Endpoint + "aux/ssh-keys/key"
+	url := client.Endpoint + "/aux/ssh-keys/key"
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
