@@ -46,8 +46,8 @@ type ServiceClient struct {
 	// Endpoint represents an endpoint that will be used in all requests.
 	Endpoint string
 
-	// UserAgent contains user agent that will be used in all requests.
-	UserAgent string
+	// userAgent contains user agent that will be used in all requests.
+	userAgent string
 }
 
 // NewClientV2 initializes a new Dedicated Servers API client for the V2 API.
@@ -56,7 +56,7 @@ func NewClientV2(tokenID, endpoint string) *ServiceClient {
 		HTTPClient: newHTTPClient(),
 		TokenID:    tokenID,
 		Endpoint:   endpoint,
-		UserAgent:  "terraform-provider",
+		userAgent:  "terraform-provider",
 	}
 }
 
@@ -101,7 +101,7 @@ func (client *ServiceClient) DoRequest(
 		return nil, err
 	}
 
-	request.Header.Set("User-Agent", client.UserAgent)
+	request.Header.Set("User-Agent", client.userAgent)
 	request.Header.Set("X-Auth-Token", client.TokenID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
