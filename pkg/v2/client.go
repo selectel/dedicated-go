@@ -51,13 +51,19 @@ type ServiceClient struct {
 }
 
 // NewClientV2 initializes a new Dedicated Servers API client for the V2 API.
-func NewClientV2(tokenID, endpoint string) *ServiceClient {
-	return &ServiceClient{
+func NewClientV2(tokenID, endpoint string, options ...ServiceClientOption) *ServiceClient {
+	client := &ServiceClient{
 		HTTPClient: newHTTPClient(),
 		TokenID:    tokenID,
 		Endpoint:   endpoint,
-		userAgent:  "terraform-provider",
+		userAgent:  "dedicated-go/v2",
 	}
+
+	for _, option := range options {
+		option(client)
+	}
+
+	return client
 }
 
 // newHTTPClient returns a reference to an initialized and configured HTTP client.
