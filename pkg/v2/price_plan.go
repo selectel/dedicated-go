@@ -30,7 +30,7 @@ func (client *ServiceClient) PricePlans(ctx context.Context) (PricePlans, *Respo
 
 	headers := []*RequestHeader{
 		{
-			Key:   "accept-language",
+			Key:   "Accept-Language",
 			Value: "en-US",
 		},
 	}
