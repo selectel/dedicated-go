@@ -6,6 +6,6 @@ test:
 	go test ./...
 
 golangci-lint:
-	@sh -c "'$(CURDIR)/scripts/golangci_lint_check.sh'"
+	docker run --rm -v $(PWD):/app:ro -w /app golangci/golangci-lint:v2.1.6 golangci-lint run
 
 .PHONY: tests unittest golangci-lint
