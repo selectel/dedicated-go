@@ -9,6 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	localSubnetSuccessBody = `{
+		"result": {
+			"network_uuid": "net1",
+			"subnet": "192.168.1.0/24",
+			"free": 1
+		}
+	}`
+)
+
 func TestServiceClient_Networks(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Prepare
@@ -246,6 +256,139 @@ func TestServiceClient_NetworkLocalSubnets(t *testing.T) {
 		subnets, respRes, err := client.NetworkLocalSubnets(context.Background(), "netid")
 		require.Error(t, err)
 		require.Nil(t, subnets)
+		require.Nil(t, respRes)
+	})
+}
+
+func TestServiceClient_GetNetworkLocalSubnet(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(200, localSubnetSuccessBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		subnet, respRes, err := client.GetNetworkLocalSubnet(context.Background(), "subnet1")
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.NotNil(t, subnet)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(200, invalidJSONBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		subnet, respRes, err := client.GetNetworkLocalSubnet(context.Background(), "subnet1")
+		require.Error(t, err)
+		require.Nil(t, subnet)
+		require.NotNil(t, respRes)
+	})
+
+	t.Run("HTTPError", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(404, httpErrorBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		subnet, respRes, err := client.GetNetworkLocalSubnet(context.Background(), "subnet1")
+		require.Error(t, err)
+		require.Nil(t, subnet)
+		require.NotNil(t, respRes)
+		require.EqualError(t, respRes.Err, httpErrorMessage)
+	})
+
+	t.Run("DoRequestError", func(t *testing.T) {
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
+
+		subnet, respRes, err := client.GetNetworkLocalSubnet(context.Background(), "subnet1")
+		require.Error(t, err)
+		require.Nil(t, subnet)
+		require.Nil(t, respRes)
+	})
+}
+
+func TestServiceClient_CreateNetworkLocalSubnet(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(201, localSubnetSuccessBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		subnet, respRes, err := client.CreateNetworkLocalSubnet(
+			context.Background(),
+			"net1",
+			"192.168.1.0/24",
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.NotNil(t, subnet)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(200, invalidJSONBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		subnet, respRes, err := client.CreateNetworkLocalSubnet(
+			context.Background(),
+			"net1",
+			"192.168.1.0/24",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, subnet)
+		require.NotNil(t, respRes)
+	})
+
+	t.Run("HTTPError", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(404, httpErrorBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		subnet, respRes, err := client.CreateNetworkLocalSubnet(
+			context.Background(),
+			"net1",
+			"192.168.1.0/24",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, subnet)
+		require.NotNil(t, respRes)
+		require.EqualError(t, respRes.Err, httpErrorMessage)
+	})
+
+	t.Run("DoRequestError", func(t *testing.T) {
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
+
+		subnet, respRes, err := client.CreateNetworkLocalSubnet(
+			context.Background(),
+			"net1",
+			"192.168.1.0/24",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, subnet)
+		require.Nil(t, respRes)
+	})
+}
+
+func TestServiceClient_DeleteNetworkLocalSubnet(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(204, `{}`) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		respRes, err := client.DeleteNetworkLocalSubnet(context.Background(), "subnet1")
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+	})
+
+	t.Run("HTTPError", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(404, httpErrorBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		respRes, err := client.DeleteNetworkLocalSubnet(context.Background(), "subnet1")
+		require.Error(t, err)
+		require.NotNil(t, respRes)
+		require.EqualError(t, respRes.Err, httpErrorMessage)
+	})
+
+	t.Run("DoRequestError", func(t *testing.T) {
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
+
+		respRes, err := client.DeleteNetworkLocalSubnet(context.Background(), "subnet1")
+		require.Error(t, err)
 		require.Nil(t, respRes)
 	})
 }

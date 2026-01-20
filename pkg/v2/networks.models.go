@@ -144,3 +144,20 @@ type (
 
 	ReservedIPs []*ReservedIP
 )
+
+type (
+	LocalSubnet struct {
+		UUID             string   `json:"uuid"`
+		Broadcast        net.IP   `json:"broadcast"`
+		Created          int64    `json:"created"`
+		GlobalRouterUUID string   `json:"global_router_uuid"`
+		LocationUUID     string   `json:"location_uuid"`
+		Netmask          net.IP   `json:"netmask"`
+		Network          int      `json:"network"`
+		NetworkUUID      string   `json:"network_uuid"`
+		OwnerID          int      `json:"owner_id"`
+		ServiceTags      []string `json:"service_tags"`
+		Subnet           string   `json:"subnet"`
+		Updated          int64    `json:"updated"`
+	}
+)

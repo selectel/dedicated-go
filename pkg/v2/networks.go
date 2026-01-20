@@ -1,7 +1,9 @@
 package v2
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -80,6 +82,86 @@ func (client *ServiceClient) NetworkLocalSubnets(ctx context.Context, networkID 
 	}
 
 	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) GetNetworkLocalSubnet(ctx context.Context, subnetID string) (*LocalSubnet, *ResponseResult, error) {
+	url := fmt.Sprintf("%s/network/ipam/local_subnet/%s", client.Endpoint, subnetID)
+
+	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, responseResult, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result LocalSubnet `json:"result"`
+	}
+
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return &result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) CreateNetworkLocalSubnet(ctx context.Context, networkID string, subnet string) (*LocalSubnet, *ResponseResult, error) {
+	url := fmt.Sprintf("%s/network/ipam/local_subnet", client.Endpoint)
+
+	payload := struct {
+		NetworkID     string `json:"network_uuid"`
+		SubnetAddress string `json:"subnet_address"`
+	}{
+		NetworkID:     networkID,
+		SubnetAddress: subnet,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, responseResult, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result *LocalSubnet `json:"result"`
+	}
+
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) DeleteNetworkLocalSubnet(ctx context.Context, subnetID string) (*ResponseResult, error) {
+	url := fmt.Sprintf("%s/network/ipam/local_subnet/%s", client.Endpoint, subnetID)
+
+	payload := struct{}{}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodDelete, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if responseResult.Err != nil {
+		return responseResult, responseResult.Err
+	}
+
+	return responseResult, nil
 }
 
 func (client *ServiceClient) NetworkSubnet(ctx context.Context, subnetID string) (*Subnet, *ResponseResult, error) {
