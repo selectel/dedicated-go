@@ -150,7 +150,7 @@ type (
 		UUID             string   `json:"uuid"`
 		Broadcast        net.IP   `json:"broadcast"`
 		Created          int64    `json:"created"`
-		GlobalRouterUUID string   `json:"global_router_uuid"`
+		GlobalRouterUUID *string  `json:"global_router_uuid"`
 		LocationUUID     string   `json:"location_uuid"`
 		Netmask          net.IP   `json:"netmask"`
 		Network          int      `json:"network"`
