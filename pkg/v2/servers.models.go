@@ -78,24 +78,25 @@ const (
 
 type (
 	ServerBillingPostPayload struct {
-		ServiceUUID      string           `json:"service_uuid"`
-		PricePlanUUID    string           `json:"price_plan_uuid"`
-		PayCurrency      string           `json:"pay_currency"`
-		LocationUUID     string           `json:"location_uuid"`
-		Quantity         int              `json:"quantity,omitempty"`
-		IPList           []net.IP         `json:"ip_list,omitempty"`
-		LocalSubnetUUID  string           `json:"local_subnet_uuid,omitempty"`
-		LocalIPList      []net.IP         `json:"local_ip_list,omitempty"`
-		ProjectUUID      string           `json:"project_uuid"`
-		PartitionsConfig PartitionsConfig `json:"partitions_config,omitempty"`
-		OSVersion        string           `json:"version"`
-		OSTemplate       string           `json:"os_template"`
-		OSArch           string           `json:"arch"`
-		UserSSHKey       string           `json:"user_ssh_key,omitempty"`
-		UserHostname     string           `json:"userhostname"`
-		UserDesc         string           `json:"user_desc"`
-		Password         string           `json:"password,omitempty"`
-		UserData         string           `json:"cloud_init_user_data,omitempty"`
+		ServiceUUID          string           `json:"service_uuid"`
+		PricePlanUUID        string           `json:"price_plan_uuid"`
+		PayCurrency          string           `json:"pay_currency"`
+		LocationUUID         string           `json:"location_uuid"`
+		Quantity             int              `json:"quantity,omitempty"`
+		IPList               []net.IP         `json:"ip_list,omitempty"`
+		LocalSubnetUUID      string           `json:"local_subnet_uuid,omitempty"`
+		LocalIPList          []net.IP         `json:"local_ip_list,omitempty"`
+		ProjectUUID          string           `json:"project_uuid"`
+		PartitionsConfig     PartitionsConfig `json:"partitions_config,omitempty"`
+		OSVersion            string           `json:"version"`
+		OSTemplate           string           `json:"os_template"`
+		OSArch               string           `json:"arch"`
+		UserSSHKey           string           `json:"user_ssh_key,omitempty"`
+		UserHostname         string           `json:"userhostname"`
+		UserDesc             string           `json:"user_desc"`
+		Password             string           `json:"password,omitempty"`
+		UserData             string           `json:"cloud_init_user_data,omitempty"`
+		LocalNetworkRequired bool             `json:"local_network_required"`
 	}
 
 	ServerBillingPostResult struct {

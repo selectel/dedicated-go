@@ -140,6 +140,7 @@ type (
 	ReservedIP struct {
 		IP          net.IP `json:"ip"`
 		NetworkUUID string `json:"network_uuid"`
+		Network     string `json:"network"`
 	}
 
 	ReservedIPs []*ReservedIP
