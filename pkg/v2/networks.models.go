@@ -32,6 +32,7 @@ func (n Networks) FilterByTelematicsTypeHosting() Networks {
 type (
 	Subnet struct {
 		UUID           string   `json:"uuid"`
+		Network        int      `json:"network"`
 		NetworkUUID    string   `json:"network_uuid"`
 		Subnet         string   `json:"subnet"`
 		Gateway        net.IP   `json:"gateway"`

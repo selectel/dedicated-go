@@ -15,10 +15,11 @@ const (
 	NetworkTypeLocal NetworkType = "local"
 )
 
-func (client *ServiceClient) Networks(ctx context.Context, locationID string, networkType NetworkType) (Networks, *ResponseResult, error) {
+func (client *ServiceClient) Networks(ctx context.Context, locationID string, networkType NetworkType, vlan string) (Networks, *ResponseResult, error) {
 	url, err := client.buildURL("/network", map[string]string{
 		"location_uuid": locationID,
 		"network_type":  string(networkType),
+		"vlan":          vlan,
 	})
 	if err != nil {
 		return nil, nil, err

@@ -17,6 +17,13 @@ const (
 			"free": 1
 		}
 	}`
+	networkReservedIPsBody = `{
+		"result": [
+			{
+				"ip": "192.168.1.10"
+			}
+		]
+	}`
 )
 
 func TestServiceClient_Networks(t *testing.T) {
@@ -34,7 +41,7 @@ func TestServiceClient_Networks(t *testing.T) {
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
 		// Execute
-		nets, respRes, err := client.Networks(context.Background(), "locid", "inet")
+		nets, respRes, err := client.Networks(context.Background(), "locid", "inet", "")
 
 		// Validate
 		require.NoError(t, err)
@@ -49,7 +56,7 @@ func TestServiceClient_Networks(t *testing.T) {
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
 		// Execute
-		nets, respRes, err := client.Networks(context.Background(), "locid", "inet")
+		nets, respRes, err := client.Networks(context.Background(), "locid", "inet", "")
 
 		// Validate
 		require.Error(t, err)
@@ -64,7 +71,7 @@ func TestServiceClient_Networks(t *testing.T) {
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
 		// Execute
-		nets, respRes, err := client.Networks(context.Background(), "locid", "inet")
+		nets, respRes, err := client.Networks(context.Background(), "locid", "inet", "")
 
 		// Validate
 		require.Error(t, err)
@@ -79,7 +86,7 @@ func TestServiceClient_Networks(t *testing.T) {
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
 
 		// Execute
-		nets, respRes, err := client.Networks(context.Background(), "locid", "inet")
+		nets, respRes, err := client.Networks(context.Background(), "locid", "inet", "")
 
 		// Validate
 		require.Error(t, err)
@@ -148,13 +155,7 @@ func TestServiceClient_NetworkSubnets(t *testing.T) {
 
 func TestServiceClient_NetworkReservedIPs(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		body := `{
-			"result": [
-				{
-					"ip": "192.168.1.10"
-				}
-			]
-		}`
+		body := networkReservedIPsBody
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
@@ -445,13 +446,7 @@ func TestServiceClient_NetworkSubnet(t *testing.T) {
 
 func TestServiceClient_NetworkSubnetLocalReservedIPs(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		body := `{
-			"result": [
-				{
-					"ip": "192.168.1.10"
-				}
-			]
-		}`
+		body := networkReservedIPsBody
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
@@ -501,13 +496,7 @@ func TestServiceClient_NetworkSubnetLocalReservedIPs(t *testing.T) {
 
 func TestServiceClient_NetworkReservedLocalIPs(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		body := `{
-			"result": [
-				{
-					"ip": "192.168.1.10"
-				}
-			]
-		}`
+		body := networkReservedIPsBody
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
