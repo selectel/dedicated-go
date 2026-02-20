@@ -161,14 +161,7 @@ func (client *ServiceClient) CreateNetworkLocalSubnet(ctx context.Context, netwo
 func (client *ServiceClient) DeleteNetworkLocalSubnet(ctx context.Context, subnetID string) (*ResponseResult, error) {
 	url := fmt.Sprintf("%s/network/ipam/local_subnet/%s", client.Endpoint, subnetID)
 
-	payload := struct{}{}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	responseResult, err := client.DoRequest(ctx, http.MethodDelete, url, bytes.NewReader(body))
+	responseResult, err := client.DoRequest(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return nil, err
 	}
