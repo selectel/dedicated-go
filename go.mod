@@ -1,4 +1,4 @@
-module github.com/selectel/dedicated-go
+module github.com/selectel/dedicated-go/v2
 
 go 1.23
 

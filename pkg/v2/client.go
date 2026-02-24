@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -179,6 +180,26 @@ func (client *ServiceClient) DoRequest(
 	}
 
 	return responseResult, nil
+}
+
+// buildURL safe build urls.
+func (client *ServiceClient) buildURL(path string, params map[string]string) (string, error) {
+	u, err := url.Parse(client.Endpoint + path)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+
+	for key, value := range params {
+		if value != "" {
+			q.Set(key, value)
+		}
+	}
+
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }
 
 // ResponseResult represents a result of an HTTP request.

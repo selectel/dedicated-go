@@ -32,6 +32,7 @@ func (n Networks) FilterByTelematicsTypeHosting() Networks {
 type (
 	Subnet struct {
 		UUID           string   `json:"uuid"`
+		Network        int      `json:"network"`
 		NetworkUUID    string   `json:"network_uuid"`
 		Subnet         string   `json:"subnet"`
 		Gateway        net.IP   `json:"gateway"`
@@ -140,7 +141,23 @@ type (
 	ReservedIP struct {
 		IP          net.IP `json:"ip"`
 		NetworkUUID string `json:"network_uuid"`
+		Network     string `json:"network"`
 	}
 
 	ReservedIPs []*ReservedIP
 )
+
+type LocalSubnet struct {
+	UUID             string   `json:"uuid"`
+	Broadcast        net.IP   `json:"broadcast"`
+	Created          int64    `json:"created"`
+	GlobalRouterUUID *string  `json:"global_router_uuid"`
+	LocationUUID     string   `json:"location_uuid"`
+	Netmask          net.IP   `json:"netmask"`
+	Network          int      `json:"network"`
+	NetworkUUID      string   `json:"network_uuid"`
+	OwnerID          int      `json:"owner_id"`
+	ServiceTags      []string `json:"service_tags,omitempty"`
+	Subnet           string   `json:"subnet"`
+	Updated          int64    `json:"updated"`
+}

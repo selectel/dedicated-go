@@ -1,7 +1,9 @@
 package v2
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -13,8 +15,15 @@ const (
 	NetworkTypeLocal NetworkType = "local"
 )
 
-func (client *ServiceClient) Networks(ctx context.Context, locationID string, networkType NetworkType) (Networks, *ResponseResult, error) {
-	url := fmt.Sprintf("%s/network?location_uuid=%s&network_type=%s", client.Endpoint, locationID, networkType)
+func (client *ServiceClient) Networks(ctx context.Context, locationID string, networkType NetworkType, vlan string) (Networks, *ResponseResult, error) {
+	url, err := client.buildURL("/network", map[string]string{
+		"location_uuid": locationID,
+		"network_type":  string(networkType),
+		"vlan":          vlan,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -36,9 +45,12 @@ func (client *ServiceClient) Networks(ctx context.Context, locationID string, ne
 }
 
 func (client *ServiceClient) NetworkSubnets(ctx context.Context, locationID string) (Subnets, *ResponseResult, error) {
-	url := fmt.Sprintf("%s/network/ipam/subnet?location_uuid=%s&is_master_shared=false", client.Endpoint, locationID)
-	if locationID == "" {
-		url = fmt.Sprintf("%s/network/ipam/subnet?is_master_shared=false", client.Endpoint)
+	url, err := client.buildURL("/network/ipam/subnet", map[string]string{
+		"is_master_shared": "false",
+		"location_uuid":    locationID,
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
@@ -61,7 +73,12 @@ func (client *ServiceClient) NetworkSubnets(ctx context.Context, locationID stri
 }
 
 func (client *ServiceClient) NetworkLocalSubnets(ctx context.Context, networkID string) (Subnets, *ResponseResult, error) {
-	url := fmt.Sprintf("%s/network/ipam/local_subnet?network_uuid=%s", client.Endpoint, networkID)
+	url, err := client.buildURL("/network/ipam/local_subnet", map[string]string{
+		"network_uuid": networkID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -80,6 +97,79 @@ func (client *ServiceClient) NetworkLocalSubnets(ctx context.Context, networkID 
 	}
 
 	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) GetNetworkLocalSubnet(ctx context.Context, subnetID string) (*LocalSubnet, *ResponseResult, error) {
+	url := fmt.Sprintf("%s/network/ipam/local_subnet/%s", client.Endpoint, subnetID)
+
+	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, responseResult, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result LocalSubnet `json:"result"`
+	}
+
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return &result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) CreateNetworkLocalSubnet(ctx context.Context, networkID string, subnet string) (*LocalSubnet, *ResponseResult, error) {
+	url := fmt.Sprintf("%s/network/ipam/local_subnet", client.Endpoint)
+
+	payload := struct {
+		NetworkID     string `json:"network_uuid"`
+		SubnetAddress string `json:"subnet_address"`
+	}{
+		NetworkID:     networkID,
+		SubnetAddress: subnet,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, responseResult, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result *LocalSubnet `json:"result"`
+	}
+
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) DeleteNetworkLocalSubnet(ctx context.Context, subnetID string) (*ResponseResult, error) {
+	url := fmt.Sprintf("%s/network/ipam/local_subnet/%s", client.Endpoint, subnetID)
+
+	responseResult, err := client.DoRequest(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if responseResult.Err != nil {
+		return responseResult, responseResult.Err
+	}
+
+	return responseResult, nil
 }
 
 func (client *ServiceClient) NetworkSubnet(ctx context.Context, subnetID string) (*Subnet, *ResponseResult, error) {
@@ -104,8 +194,41 @@ func (client *ServiceClient) NetworkSubnet(ctx context.Context, subnetID string)
 	return result.Result, responseResult, nil
 }
 
-func (client *ServiceClient) NetworkReservedIPs(ctx context.Context, locationID string) (ReservedIPs, *ResponseResult, error) {
-	url := fmt.Sprintf("%s/network/ipam/ip?location_uuid=%s", client.Endpoint, locationID)
+func (client *ServiceClient) NetworkReservedIPs(ctx context.Context, locationID string, resourceID string) (ReservedIPs, *ResponseResult, error) {
+	url, err := client.buildURL("/network/ipam/ip", map[string]string{
+		"location_uuid": locationID,
+		"resource_uuid": resourceID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result ReservedIPs `json:"result"`
+	}
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) NetworkReservedLocalIPs(ctx context.Context, resourceID string) (ReservedIPs, *ResponseResult, error) {
+	url, err := client.buildURL("/network/ipam/local_ip", map[string]string{
+		"resource_uuid": resourceID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
