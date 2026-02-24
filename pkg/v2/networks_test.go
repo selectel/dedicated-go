@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/selectel/dedicated-go/pkg/httptest"
+	"github.com/selectel/dedicated-go/v2/pkg/httptest"
 	"github.com/stretchr/testify/require"
 )
 

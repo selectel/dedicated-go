@@ -8,7 +8,7 @@ Go SDK for Selectel Dedicated Servers
 You can install needed `dedicated-go` packages via `go get` command:
 
 ```bash
-go get github.com/selectel/dedicated-go
+go get github.com/selectel/dedicated-go/v2
 ```
 
 ### Authentication
@@ -33,7 +33,7 @@ import (
 	"fmt"
 	"log"
 
-	dedicated "github.com/selectel/dedicated-go/pkg/v2"
+	dedicated "github.com/selectel/dedicated-go/v2/pkg/v2"
 )
 
 func main() {
