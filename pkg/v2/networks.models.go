@@ -142,6 +142,7 @@ type (
 		IP          net.IP `json:"ip"`
 		NetworkUUID string `json:"network_uuid"`
 		Network     string `json:"network"`
+		Subnet      string `json:"subnet"`
 	}
 
 	ReservedIPs []*ReservedIP

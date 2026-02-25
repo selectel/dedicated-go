@@ -12,6 +12,7 @@ type (
 		Available          []*ServerAvailable `json:"available"`
 		PricePlanAvailable []string           `json:"price_plan_available"`
 		Tags               []string           `json:"tags"`
+		ConfigName         string             `json:"config_name"`
 
 		IsServerChip bool
 	}
@@ -133,6 +134,7 @@ type ResourceDetails struct {
 	ServiceUUID  string          `json:"service_uuid"`
 	Billing      *ServiceBilling `json:"billing"`
 	ServiceType  string          `json:"service_type"`
+	Info         string          `json:"info"`
 }
 
 func (rd ResourceDetails) IsServerChip() bool {

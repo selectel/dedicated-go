@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (client *ServiceClient) ServersRaw(ctx context.Context) ([]map[string]any, *ResponseResult, error) {
+func (client *ServiceClient) Servers(ctx context.Context) ([]Server, *ResponseResult, error) {
 	url := client.Endpoint + "/service/server"
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
@@ -20,7 +20,7 @@ func (client *ServiceClient) ServersRaw(ctx context.Context) ([]map[string]any, 
 	}
 
 	var result struct {
-		Servers []map[string]any `json:"result"`
+		Servers []Server `json:"result"`
 	}
 	err = responseResult.ExtractResult(&result)
 	if err != nil {
@@ -30,7 +30,7 @@ func (client *ServiceClient) ServersRaw(ctx context.Context) ([]map[string]any, 
 	return result.Servers, responseResult, nil
 }
 
-func (client *ServiceClient) ServerChipsRaw(ctx context.Context) ([]map[string]any, *ResponseResult, error) {
+func (client *ServiceClient) ServerChips(ctx context.Context) ([]Server, *ResponseResult, error) {
 	url := client.Endpoint + "/service/serverchip"
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
@@ -42,7 +42,7 @@ func (client *ServiceClient) ServerChipsRaw(ctx context.Context) ([]map[string]a
 	}
 
 	var result struct {
-		Servers []map[string]any `json:"result"`
+		Servers []Server `json:"result"`
 	}
 	err = responseResult.ExtractResult(&result)
 	if err != nil {
@@ -259,6 +259,34 @@ func (client *ServiceClient) serverChipBilling(
 
 	var result struct {
 		Result []*ServerBillingPostResult `json:"result"`
+	}
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) ResourcesList(ctx context.Context, locationID string, serviceID string) ([]ResourceDetails, *ResponseResult, error) {
+	url, err := client.buildURL("/resource", map[string]string{
+		"location_uuid": locationID,
+		"service_uuid":  serviceID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result []ResourceDetails `json:"result"`
 	}
 	err = responseResult.ExtractResult(&result)
 	if err != nil {

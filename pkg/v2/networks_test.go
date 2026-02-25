@@ -500,7 +500,7 @@ func TestServiceClient_NetworkReservedLocalIPs(t *testing.T) {
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
-		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "resourceid")
+		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "", "resourceid")
 		require.NoError(t, err)
 		require.NotNil(t, respRes)
 		require.Equal(t, "192.168.1.10", ips[0].IP.String())
@@ -511,7 +511,7 @@ func TestServiceClient_NetworkReservedLocalIPs(t *testing.T) {
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
-		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "resourceid")
+		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "", "resourceid")
 		require.Error(t, err)
 		require.Nil(t, ips)
 		require.NotNil(t, respRes)
@@ -524,7 +524,7 @@ func TestServiceClient_NetworkReservedLocalIPs(t *testing.T) {
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
 
 		// Execute
-		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "resourceid")
+		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "", "resourceid")
 
 		// Analyse
 		require.Error(t, err)
@@ -537,7 +537,7 @@ func TestServiceClient_NetworkReservedLocalIPs(t *testing.T) {
 	t.Run("DoRequestError", func(t *testing.T) {
 		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
 
-		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "resourceid")
+		ips, respRes, err := client.NetworkReservedLocalIPs(context.Background(), "", "resourceid")
 		require.Error(t, err)
 		require.Nil(t, ips)
 		require.Nil(t, respRes)

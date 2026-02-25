@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestServiceClient_ServersRaw(t *testing.T) {
+func TestServiceClient_Servers(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Prepare
 		body := `{
@@ -22,14 +22,22 @@ func TestServiceClient_ServersRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServersRaw(context.Background())
+		svrs, respRes, err := client.Servers(context.Background())
 
 		// Analyse
 		require.NoError(t, err)
 		require.NotNil(t, respRes)
 		require.Equal(t, 200, respRes.StatusCode)
-		wantSvrs := []map[string]any{
-			{"name": "server1"},
+		wantSvrs := []Server{
+			{
+				ID:                 "",
+				Name:               "server1",
+				Available:          nil,
+				PricePlanAvailable: nil,
+				Tags:               nil,
+				ConfigName:         "",
+				IsServerChip:       false,
+			},
 		}
 		require.Equal(t, wantSvrs, svrs)
 	})
@@ -42,7 +50,7 @@ func TestServiceClient_ServersRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServersRaw(context.Background())
+		svrs, respRes, err := client.Servers(context.Background())
 
 		// Analyse
 		require.Error(t, err)
@@ -59,7 +67,7 @@ func TestServiceClient_ServersRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServersRaw(context.Background())
+		svrs, respRes, err := client.Servers(context.Background())
 
 		// Analyse
 		require.Error(t, err)
@@ -75,7 +83,7 @@ func TestServiceClient_ServersRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServersRaw(context.Background())
+		svrs, respRes, err := client.Servers(context.Background())
 
 		// Analyse
 		require.Error(t, err)
@@ -84,7 +92,7 @@ func TestServiceClient_ServersRaw(t *testing.T) {
 	})
 }
 
-func TestServiceClient_ServerChipsRaw(t *testing.T) {
+func TestServiceClient_ServerChips(t *testing.T) {
 	t.Run("ServerChip_Success", func(t *testing.T) {
 		// Prepare
 		body := `{
@@ -97,14 +105,22 @@ func TestServiceClient_ServerChipsRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServerChipsRaw(context.Background())
+		svrs, respRes, err := client.ServerChips(context.Background())
 
 		// Analyse
 		require.NoError(t, err)
 		require.NotNil(t, respRes)
 		require.Equal(t, 200, respRes.StatusCode)
-		wantSvrs := []map[string]any{
-			{"name": "chip1"},
+		wantSvrs := []Server{
+			{
+				ID:                 "",
+				Name:               "chip1",
+				Available:          nil,
+				PricePlanAvailable: nil,
+				Tags:               nil,
+				ConfigName:         "",
+				IsServerChip:       false,
+			},
 		}
 		require.Equal(t, wantSvrs, svrs)
 	})
@@ -117,7 +133,7 @@ func TestServiceClient_ServerChipsRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServerChipsRaw(context.Background())
+		svrs, respRes, err := client.ServerChips(context.Background())
 
 		// Analyse
 		require.Error(t, err)
@@ -134,7 +150,7 @@ func TestServiceClient_ServerChipsRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServerChipsRaw(context.Background())
+		svrs, respRes, err := client.ServerChips(context.Background())
 
 		// Analyse
 		require.Error(t, err)
@@ -150,7 +166,7 @@ func TestServiceClient_ServerChipsRaw(t *testing.T) {
 		client := newFakeClient("http://fake", fakeTransport)
 
 		// Execute
-		svrs, respRes, err := client.ServerChipsRaw(context.Background())
+		svrs, respRes, err := client.ServerChips(context.Background())
 
 		// Analyse
 		require.Error(t, err)
@@ -614,6 +630,122 @@ func TestServiceClient_DeleteResource(t *testing.T) {
 
 		// Analyse
 		require.Error(t, err)
+		require.Nil(t, respRes)
+	})
+}
+
+func TestServiceClient_ResourcesList(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		// Prepare
+		body := `{
+			"result": [{
+				"uuid": "resource1",
+				"state": "active",
+				"location_uuid": "loc1",
+				"service_uuid": "service1",
+				"billing": {
+					"currency": "USD",
+					"has_enough_balance": true
+				},
+				"service_type": "server"
+			}, {
+				"uuid": "resource2",
+				"state": "pending",
+				"location_uuid": "loc2",
+				"service_uuid": "service2",
+				"billing": {
+					"currency": "EUR",
+					"has_enough_balance": false
+				},
+				"service_type": "serverchip"
+			}]
+		}`
+		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
+		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
+		client := newFakeClient("http://fake", fakeTransport)
+
+		// Execute
+		resources, respRes, err := client.ResourcesList(context.Background(), "", "")
+
+		// Analyse
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.Equal(t, 200, respRes.StatusCode)
+		require.Len(t, resources, 2)
+
+		wantResources := []ResourceDetails{
+			{
+				UUID:         "resource1",
+				State:        "active",
+				LocationUUID: "loc1",
+				ServiceUUID:  "service1",
+				Billing: &ServiceBilling{
+					Currency:         "USD",
+					HasEnoughBalance: true,
+				},
+				ServiceType: "server",
+			},
+			{
+				UUID:         "resource2",
+				State:        "pending",
+				LocationUUID: "loc2",
+				ServiceUUID:  "service2",
+				Billing: &ServiceBilling{
+					Currency:         "EUR",
+					HasEnoughBalance: false,
+				},
+				ServiceType: "serverchip",
+			},
+		}
+		require.Equal(t, wantResources, resources)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		// Prepare
+		body := invalidJSONBody
+		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
+		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
+		client := newFakeClient("http://fake", fakeTransport)
+
+		// Execute
+		resources, respRes, err := client.ResourcesList(context.Background(), "", "")
+
+		// Analyse
+		require.Error(t, err)
+		require.Nil(t, resources)
+		require.NotNil(t, respRes)
+		require.Equal(t, 200, respRes.StatusCode)
+	})
+
+	t.Run("HTTPError", func(t *testing.T) {
+		// Prepare
+		body := httpErrorBody
+		fakeResp := httptest.NewFakeResponse(404, body) //nolint:bodyclose
+		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
+		client := newFakeClient("http://fake", fakeTransport)
+
+		// Execute
+		resources, respRes, err := client.ResourcesList(context.Background(), "", "")
+
+		// Analyse
+		require.Error(t, err)
+		require.NotNil(t, respRes)
+		require.NotNil(t, respRes.Err)
+		require.Nil(t, resources)
+		require.EqualError(t, respRes.Err, httpErrorMessage)
+	})
+
+	t.Run("DoRequestError", func(t *testing.T) {
+		// Prepare
+		fakeTransport := httptest.NewFakeTransport(nil, errors.New("network failure"))
+		client := newFakeClient("http://fake", fakeTransport)
+
+		// Execute
+		resources, respRes, err := client.ResourcesList(context.Background(), "", "")
+
+		// Analyse
+		require.Error(t, err)
+		require.Nil(t, resources)
 		require.Nil(t, respRes)
 	})
 }
