@@ -222,9 +222,8 @@ func (client *ServiceClient) NetworkReservedIPs(ctx context.Context, locationID 
 	return result.Result, responseResult, nil
 }
 
-func (client *ServiceClient) NetworkReservedLocalIPs(ctx context.Context, locationID string, resourceID string) (ReservedIPs, *ResponseResult, error) {
+func (client *ServiceClient) NetworkReservedLocalIPs(ctx context.Context, resourceID string) (ReservedIPs, *ResponseResult, error) {
 	url, err := client.buildURL("/network/ipam/local_ip", map[string]string{
-		"location_uuid": locationID,
 		"resource_uuid": resourceID,
 	})
 	if err != nil {

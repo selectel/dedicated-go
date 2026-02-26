@@ -139,10 +139,11 @@ func uint32ToIP(n uint32) net.IP {
 
 type (
 	ReservedIP struct {
-		IP          net.IP `json:"ip"`
-		NetworkUUID string `json:"network_uuid"`
-		Network     string `json:"network"`
-		Subnet      string `json:"subnet"`
+		IP           net.IP `json:"ip"`
+		ResourceUUID string `json:"resource_uuid"`
+		NetworkUUID  string `json:"network_uuid"`
+		Network      string `json:"network"`
+		Subnet       string `json:"subnet"`
 	}
 
 	ReservedIPs []*ReservedIP
