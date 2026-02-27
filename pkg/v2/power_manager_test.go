@@ -13,9 +13,11 @@ func TestServiceClient_ShowPowerState(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		body := `{
 			"result": {
-				"maintenance": false,
-				"power_state": "power on",
-				"target_power_state": ""
+				"driver_status": {
+					"maintenance": false,
+					"power_state": "power on",
+					"target_power_state": ""
+				}
 			}
 		}`
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
