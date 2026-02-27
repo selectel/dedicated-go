@@ -20,14 +20,16 @@ func (client *ServiceClient) ShowPowerState(ctx context.Context, resourceID stri
 	}
 
 	var result struct {
-		DriverStatus *DriverStatus `json:"result"`
+		Result struct {
+			DriverStatus *DriverStatus `json:"driver_status"`
+		} `json:"result"`
 	}
 	err = responseResult.ExtractResult(&result)
 	if err != nil {
 		return nil, responseResult, err
 	}
 
-	return result.DriverStatus, responseResult, nil
+	return result.Result.DriverStatus, responseResult, nil
 }
 
 func (client *ServiceClient) SetPowerState(ctx context.Context, resourceID string, powerOn bool) (*ResponseResult, error) {
