@@ -143,7 +143,7 @@ type InstallNewOSPayload struct {
 	UserHostname     string           `json:"userhostname"`
 	Password         string           `json:"password,omitempty"`
 	PartitionsConfig PartitionsConfig `json:"partitions_config,omitempty"`
-	UserData         string           `json:"cloud_init_user_data,omitempty"`
+	UserData         *string          `json:"cloud_init_user_data"`
 }
 
 func (p *InstallNewOSPayload) CopyWithoutSensitiveData() *InstallNewOSPayload {
