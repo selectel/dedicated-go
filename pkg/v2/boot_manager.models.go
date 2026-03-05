@@ -125,14 +125,15 @@ func (o OperatingSystems) FindOneByArchAndVersionAndOs(arch, version, osValue st
 }
 
 type OperatingSystemAtResource struct {
-	UserSSHKey   string `json:"user_ssh_key"`
-	UserHostName string `json:"userhostname"`
-	UserData     string `json:"cloud_init_user_data"`
-	Password     string `json:"password"`
-	OSValue      string `json:"os_template"`
-	Arch         string `json:"arch"`
-	Version      string `json:"version"`
-	Reinstall    int    `json:"reinstall"`
+	UserSSHKey       string           `json:"user_ssh_key"`
+	UserHostName     string           `json:"userhostname"`
+	UserData         string           `json:"cloud_init_user_data"`
+	Password         string           `json:"password"`
+	OSValue          string           `json:"os_template"`
+	Arch             string           `json:"arch"`
+	Version          string           `json:"version"`
+	Reinstall        int              `json:"reinstall"`
+	PartitionsConfig PartitionsConfig `json:"partitions_config"`
 }
 
 type InstallNewOSPayload struct {
