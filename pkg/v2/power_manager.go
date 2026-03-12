@@ -9,7 +9,10 @@ import (
 )
 
 func (client *ServiceClient) ShowPowerState(ctx context.Context, resourceID string) (*DriverStatus, *ResponseResult, error) {
-	u := fmt.Sprintf("%s/power/%s", client.Endpoint, resourceID)
+	u, err := client.buildURL(fmt.Sprintf("/power/%s", resourceID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, u, nil)
 	if err != nil {
@@ -33,7 +36,10 @@ func (client *ServiceClient) ShowPowerState(ctx context.Context, resourceID stri
 }
 
 func (client *ServiceClient) SetPowerState(ctx context.Context, resourceID string, powerOn bool) (*ResponseResult, error) {
-	u := fmt.Sprintf("%s/power/%s", client.Endpoint, resourceID)
+	u, err := client.buildURL(fmt.Sprintf("/power/%s", resourceID), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	payload := struct {
 		PowerState bool `json:"power_state"`
@@ -58,7 +64,10 @@ func (client *ServiceClient) SetPowerState(ctx context.Context, resourceID strin
 }
 
 func (client *ServiceClient) RebootServer(ctx context.Context, resourceID string) (*ResponseResult, error) {
-	u := fmt.Sprintf("%s/power/%s/reboot", client.Endpoint, resourceID)
+	u, err := client.buildURL(fmt.Sprintf("/power/%s/reboot", resourceID), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	payload := struct {
 		Reboot bool `json:"reboot"`

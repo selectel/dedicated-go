@@ -30,13 +30,7 @@ func TestServiceClient_Servers(t *testing.T) {
 		require.Equal(t, 200, respRes.StatusCode)
 		wantSvrs := []Server{
 			{
-				ID:                 "",
-				Name:               "server1",
-				Available:          nil,
-				PricePlanAvailable: nil,
-				Tags:               nil,
-				ConfigName:         "",
-				IsServerChip:       false,
+				Name: "server1",
 			},
 		}
 		require.Equal(t, wantSvrs, svrs)
@@ -113,13 +107,7 @@ func TestServiceClient_ServerChips(t *testing.T) {
 		require.Equal(t, 200, respRes.StatusCode)
 		wantSvrs := []Server{
 			{
-				ID:                 "",
-				Name:               "chip1",
-				Available:          nil,
-				PricePlanAvailable: nil,
-				Tags:               nil,
-				ConfigName:         "",
-				IsServerChip:       false,
+				Name: "chip1",
 			},
 		}
 		require.Equal(t, wantSvrs, svrs)
