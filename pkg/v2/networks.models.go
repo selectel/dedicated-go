@@ -11,7 +11,9 @@ import (
 type (
 	Network struct {
 		UUID           string `json:"uuid"`
-		TelematicsType string `json:"telematics_type"`
+		TelematicsType string `json:"telematics_type,omitempty"`
+		Vlan           int    `json:"vlan"`
+		LocationUUID   string `json:"location_uuid"`
 	}
 
 	Networks []*Network
@@ -141,7 +143,6 @@ type (
 	ReservedIP struct {
 		IP          net.IP `json:"ip"`
 		NetworkUUID string `json:"network_uuid"`
-		Network     string `json:"network"`
 	}
 
 	ReservedIPs []*ReservedIP
@@ -160,4 +161,11 @@ type LocalSubnet struct {
 	ServiceTags      []string `json:"service_tags,omitempty"`
 	Subnet           string   `json:"subnet"`
 	Updated          int64    `json:"updated"`
+}
+
+type HardwarePort struct {
+	UUID     string      `json:"uuid"`
+	PortType NetworkType `json:"port_type"`
+	HWUUID   string      `json:"hw_uuid"`
+	Network  Networks    `json:"network"`
 }
