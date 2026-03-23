@@ -134,6 +134,7 @@ type ResourceDetails struct {
 	ServiceUUID  string          `json:"service_uuid"`
 	Billing      *ServiceBilling `json:"billing"`
 	ServiceType  string          `json:"service_type"`
+	HWUUID       string          `json:"hw_uuid"`
 	Info         string          `json:"info"`
 }
 

@@ -24,6 +24,14 @@ const (
 			}
 		]
 	}`
+	addIPInNetworkLocalSubnetSuccessBody = `{
+		"result": {
+			"ip": "10.10.10.10",
+			"network_uuid": "net1",
+			"subnet": "10.10.10.0/24",
+			"resource_uuid": "server-uuid-123"
+		}
+	}`
 )
 
 func TestServiceClient_Networks(t *testing.T) {
@@ -541,5 +549,200 @@ func TestServiceClient_NetworkReservedLocalIPs(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, ips)
 		require.Nil(t, respRes)
+	})
+}
+
+func TestServiceClient_GetHardwarePortsList(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		body := `{
+			"result": [
+				{
+					"uuid": "port1",
+					"name": "eth0"
+				}
+			]
+		}`
+		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		ports, respRes, err := client.GetHardwarePortsList(context.Background(), "hw1", nil)
+
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.Len(t, ports, 1)
+		require.Equal(t, "port1", ports[0].UUID)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		body := invalidJSONBody
+		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		ports, respRes, err := client.GetHardwarePortsList(context.Background(), "hw1", nil)
+
+		require.Error(t, err)
+		require.Nil(t, ports)
+		require.NotNil(t, respRes)
+	})
+
+	t.Run("HTTPError", func(t *testing.T) {
+		body := httpErrorBody
+		fakeResp := httptest.NewFakeResponse(404, body) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		ports, respRes, err := client.GetHardwarePortsList(context.Background(), "hw1", nil)
+
+		require.Error(t, err)
+		require.Nil(t, ports)
+		require.NotNil(t, respRes)
+		require.NotNil(t, respRes.Err)
+		require.EqualError(t, respRes.Err, httpErrorMessage)
+	})
+
+	t.Run("DoRequestError", func(t *testing.T) {
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
+
+		ports, respRes, err := client.GetHardwarePortsList(context.Background(), "hw1", nil)
+
+		require.Error(t, err)
+		require.Nil(t, ports)
+		require.Nil(t, respRes)
+	})
+}
+
+func TestServiceClient_AddIPInNetworkLocalSubnet(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(201, addIPInNetworkLocalSubnetSuccessBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"subnet-uuid-123",
+			"server-uuid-123",
+			"10.10.10.10",
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.NotNil(t, reservedIP)
+		require.Equal(t, "10.10.10.10", reservedIP.IP.String())
+		require.Equal(t, "net1", reservedIP.NetworkUUID)
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(201, invalidJSONBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"subnet-uuid-123",
+			"server-uuid-123",
+			"10.10.10.10",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, reservedIP)
+		require.NotNil(t, respRes)
+	})
+
+	t.Run("HTTPError", func(t *testing.T) {
+		fakeResp := httptest.NewFakeResponse(404, httpErrorBody) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"subnet-uuid-123",
+			"server-uuid-123",
+			"10.10.10.10",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, reservedIP)
+		require.NotNil(t, respRes)
+		require.NotNil(t, respRes.Err)
+		require.EqualError(t, respRes.Err, httpErrorMessage)
+	})
+
+	t.Run("DoRequestError", func(t *testing.T) {
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(nil, errors.New("network failure")))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"subnet-uuid-123",
+			"server-uuid-123",
+			"10.10.10.10",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, reservedIP)
+		require.Nil(t, respRes)
+	})
+
+	t.Run("InvalidIPFormat", func(t *testing.T) {
+		body := `{
+			"error": {
+				"message": "Invalid IP format",
+				"code": 400
+			}
+		}`
+		fakeResp := httptest.NewFakeResponse(400, body) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"subnet-uuid-123",
+			"server-uuid-123",
+			"invalid-ip",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, reservedIP)
+		require.NotNil(t, respRes)
+	})
+
+	t.Run("SubnetNotFound", func(t *testing.T) {
+		body := `{
+			"error": {
+				"message": "Subnet not found",
+				"code": 404
+			}
+		}`
+		fakeResp := httptest.NewFakeResponse(404, body) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"non-existent-subnet",
+			"server-uuid-123",
+			"10.10.10.10",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, reservedIP)
+		require.NotNil(t, respRes)
+		require.Equal(t, 404, respRes.StatusCode)
+	})
+
+	t.Run("IPAlreadyInUse", func(t *testing.T) {
+		body := `{
+			"error": {
+				"message": "IP address already in use",
+				"code": 409
+			}
+		}`
+		fakeResp := httptest.NewFakeResponse(409, body) //nolint:bodyclose
+		client := newFakeClient("http://fake", httptest.NewFakeTransport(fakeResp, nil))
+
+		reservedIP, respRes, err := client.AddIPInNetworkLocalSubnet(
+			context.Background(),
+			"subnet-uuid-123",
+			"server-uuid-123",
+			"10.10.10.10",
+		)
+
+		require.Error(t, err)
+		require.Nil(t, reservedIP)
+		require.NotNil(t, respRes)
+		require.Equal(t, 409, respRes.StatusCode)
 	})
 }

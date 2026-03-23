@@ -15,11 +15,11 @@ const (
 	NetworkTypeLocal NetworkType = "local"
 )
 
-func (client *ServiceClient) Networks(ctx context.Context, locationID string, networkType NetworkType, vlan string) (Networks, *ResponseResult, error) {
+func (client *ServiceClient) Networks(ctx context.Context, locationID string, networkType NetworkType, tag string) (Networks, *ResponseResult, error) {
 	url, err := client.buildURL("/network", map[string]string{
 		"location_uuid": locationID,
 		"network_type":  string(networkType),
-		"vlan":          vlan,
+		"tag":           tag,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -262,6 +262,79 @@ func (client *ServiceClient) NetworkSubnetLocalReservedIPs(ctx context.Context, 
 
 	var result struct {
 		Result ReservedIPs `json:"result"`
+	}
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) AddIPInNetworkLocalSubnet(
+	ctx context.Context, subnetID, resourceID, ip string,
+) (*ReservedIP, *ResponseResult, error) {
+	url, err := client.buildURL(fmt.Sprintf("/network/ipam/local_subnet/%s/local_ip", subnetID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	payload := struct {
+		IP         string `json:"ip"`
+		ResourceID string `json:"resource_uuid"`
+	}{
+		IP:         ip,
+		ResourceID: resourceID,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, nil, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result *ReservedIP `json:"result"`
+	}
+	err = responseResult.ExtractResult(&result)
+	if err != nil {
+		return nil, responseResult, err
+	}
+
+	return result.Result, responseResult, nil
+}
+
+func (client *ServiceClient) GetHardwarePortsList(
+	ctx context.Context, hwID string, networkType *NetworkType,
+) ([]HardwarePort, *ResponseResult, error) {
+	params := make(map[string]string)
+
+	if networkType != nil {
+		params["port_type"] = string(*networkType)
+	}
+
+	url, err := client.buildURL(fmt.Sprintf("/network/port/hw/%s", hwID), params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if responseResult.Err != nil {
+		return nil, responseResult, responseResult.Err
+	}
+
+	var result struct {
+		Result []HardwarePort `json:"result"`
 	}
 	err = responseResult.ExtractResult(&result)
 	if err != nil {
