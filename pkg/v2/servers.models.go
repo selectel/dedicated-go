@@ -136,6 +136,7 @@ type ResourceDetails struct {
 	ServiceType  string          `json:"service_type"`
 	HWUUID       string          `json:"hw_uuid"`
 	Info         string          `json:"info"`
+	UserDesc     string          `json:"user_desc"`
 }
 
 func (rd ResourceDetails) IsServerChip() bool {
