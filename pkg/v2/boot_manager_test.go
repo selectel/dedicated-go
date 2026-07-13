@@ -328,6 +328,62 @@ func TestServiceClient_ReinstallOS(t *testing.T) {
 		require.Equal(t, 200, respRes.StatusCode)
 	})
 
+	t.Run("SuccessWithLocalIPv4Fields", func(t *testing.T) {
+		// Prepare
+		body := `{
+			"result": {}
+		}`
+		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
+		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
+		client := newFakeClient("http://fake", fakeTransport)
+
+		payload := &InstallNewOSPayload{
+			OSVersion:        "20.04",
+			OSTemplate:       "ubuntu",
+			OSArch:           "x86_64",
+			UserHostname:     "test-host",
+			LocalIPv4Address: StringPtr("192.168.1.10"),
+			LocalIPv4Netmask: StringPtr("255.255.255.0"),
+			LocalIPv4Gateway: StringPtr("192.168.1.1"),
+		}
+
+		// Execute
+		respRes, err := client.InstallNewOS(context.Background(), payload, "resourceid")
+
+		// Analyse
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.Equal(t, 200, respRes.StatusCode)
+	})
+
+	t.Run("SuccessWithNilLocalIPv4Fields", func(t *testing.T) {
+		// Prepare — nil local IPv4 fields send null to clear the private subnet
+		body := `{
+			"result": {}
+		}`
+		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
+		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
+		client := newFakeClient("http://fake", fakeTransport)
+
+		payload := &InstallNewOSPayload{
+			OSVersion:        "20.04",
+			OSTemplate:       "ubuntu",
+			OSArch:           "x86_64",
+			UserHostname:     "test-host",
+			LocalIPv4Address: nil,
+			LocalIPv4Netmask: nil,
+			LocalIPv4Gateway: nil,
+		}
+
+		// Execute
+		respRes, err := client.InstallNewOS(context.Background(), payload, "resourceid")
+
+		// Analyse
+		require.NoError(t, err)
+		require.NotNil(t, respRes)
+		require.Equal(t, 200, respRes.StatusCode)
+	})
+
 	t.Run("HTTPError", func(t *testing.T) {
 		// Prepare
 		body := httpErrorBody
