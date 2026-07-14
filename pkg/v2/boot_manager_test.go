@@ -10,6 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const emptyResultBody = `{
+			"result": {}
+		}`
+
 func TestServiceClient_OperatingSystems(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Prepare
@@ -303,9 +307,7 @@ func TestServiceClient_PartitionsValidate(t *testing.T) {
 func TestServiceClient_ReinstallOS(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// Prepare
-		body := `{
-			"result": {}
-		}`
+		body := emptyResultBody
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
 		client := newFakeClient("http://fake", fakeTransport)
@@ -330,9 +332,7 @@ func TestServiceClient_ReinstallOS(t *testing.T) {
 
 	t.Run("SuccessWithLocalIPv4Fields", func(t *testing.T) {
 		// Prepare
-		body := `{
-			"result": {}
-		}`
+		body := emptyResultBody
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
 		client := newFakeClient("http://fake", fakeTransport)
@@ -358,9 +358,7 @@ func TestServiceClient_ReinstallOS(t *testing.T) {
 
 	t.Run("SuccessWithNilLocalIPv4Fields", func(t *testing.T) {
 		// Prepare — nil local IPv4 fields send null to clear the private subnet
-		body := `{
-			"result": {}
-		}`
+		body := emptyResultBody
 		fakeResp := httptest.NewFakeResponse(200, body) //nolint:bodyclose
 		fakeTransport := httptest.NewFakeTransport(fakeResp, nil)
 		client := newFakeClient("http://fake", fakeTransport)
