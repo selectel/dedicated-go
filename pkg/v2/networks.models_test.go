@@ -1,6 +1,8 @@
 package v2
 
 import (
+	"encoding/json"
+	"math/big"
 	"net"
 	"testing"
 
@@ -84,6 +86,50 @@ func TestSubnet_GetFreeIP(t *testing.T) {
 			isLocal:     false,
 			want:        "",
 			wantErr:     true,
+		},
+		{
+			name: "IPv6FreeIPAvailable",
+			subnet: Subnet{
+				NetworkUUID:    "net1",
+				Subnet:         "2a00:1f00::/64",
+				Gateway:        net.ParseIP("2a00:1f00::1"),
+				Broadcast:      nil,
+				ReservedVRRPIP: []net.IP{net.ParseIP("2a00:1f00::2")},
+			},
+			reservedIPs: ReservedIPs{
+				&ReservedIP{IP: net.ParseIP("2a00:1f00::3"), NetworkUUID: "net1"},
+			},
+			isLocal: false,
+			want:    "2a00:1f00::4",
+			wantErr: false,
+		},
+		{
+			name: "IPv6WithGateway",
+			subnet: Subnet{
+				NetworkUUID:    "net1",
+				Subnet:         "2a00:1f00::/64",
+				Gateway:        net.ParseIP("2a00:1f00::1"),
+				Broadcast:      nil,
+				ReservedVRRPIP: nil,
+			},
+			reservedIPs: ReservedIPs{},
+			isLocal:     false,
+			want:        "2a00:1f00::2",
+			wantErr:     false,
+		},
+		{
+			name: "IPv6LocalSubnetSkipsHiddenGateway",
+			subnet: Subnet{
+				NetworkUUID:    "net1",
+				Subnet:         "2a00:1f00::/64",
+				Gateway:        nil,
+				Broadcast:      nil,
+				ReservedVRRPIP: nil,
+			},
+			reservedIPs: ReservedIPs{},
+			isLocal:     true,
+			want:        "2a00:1f00::2", // skip ::0 (network) + ::1 (hidden gateway), start at ::2
+			wantErr:     false,
 		},
 	}
 
@@ -187,10 +233,131 @@ func TestSubnets_FindBySubnet(t *testing.T) {
 	}
 }
 
-func TestIPConversion(t *testing.T) {
-	ip := net.ParseIP("192.168.1.1")
-	uintIP := ipToUint32(ip)
-	convertedIP := uint32ToIP(uintIP)
+func TestIPBigIntConversion(t *testing.T) {
+	t.Run("IPv4RoundTrip", func(t *testing.T) {
+		ip := net.ParseIP("192.168.1.1")
+		n := ipToBigInt(ip)
+		convertedIP := bigIntToIP(n, true)
+		require.Equal(t, ip.To4().String(), convertedIP.String())
+	})
 
-	require.Equal(t, ip.String(), convertedIP.String())
+	t.Run("IPv6RoundTrip", func(t *testing.T) {
+		ip := net.ParseIP("2a00:1f00::1")
+		n := ipToBigInt(ip)
+		convertedIP := bigIntToIP(n, false)
+		require.Equal(t, ip.String(), convertedIP.String())
+	})
+
+	t.Run("IPv6Zero", func(t *testing.T) {
+		ip := net.ParseIP("::")
+		n := ipToBigInt(ip)
+		require.Equal(t, 0, n.Cmp(big.NewInt(0)))
+		convertedIP := bigIntToIP(n, false)
+		require.Equal(t, "::", convertedIP.String())
+	})
+
+	t.Run("IPv4SmallNumber", func(t *testing.T) {
+		// 10.0.0.1 = 0x0a000001 = 167772161
+		ip := net.ParseIP("10.0.0.1")
+		n := ipToBigInt(ip)
+		require.Equal(t, big.NewInt(0x0a000001), n)
+	})
+}
+
+func TestFreeCount_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		json    string
+		want    FreeCount
+		wantErr bool
+	}{
+		{
+			name: "RegularInt",
+			json: `{"free": 42}`,
+			want: FreeCount("42"),
+		},
+		{
+			name: "Zero",
+			json: `{"free": 0}`,
+			want: FreeCount("0"),
+		},
+		{
+			name: "LargeNumber_Int64Overflow",
+			json: `{"free": 18446744073709551616}`,
+			want: FreeCount("18446744073709551616"),
+		},
+		{
+			name: "StringValue_Asterisk",
+			json: `{"free": "*"}`,
+			want: FreeCount("*"),
+		},
+		{
+			name: "NullValue",
+			json: `{"free": null}`,
+			want: FreeCount(""),
+		},
+		{
+			name: "MissingField",
+			json: `{}`,
+			want: FreeCount(""),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result struct {
+				Free FreeCount `json:"free"`
+			}
+			err := json.Unmarshal([]byte(tt.json), &result)
+
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.want, result.Free)
+			}
+		})
+	}
+}
+
+func TestSubnet_UnmarshalJSON_IPv6LargeFree(t *testing.T) {
+	// Simulates an API response for an IPv6 subnet where "free" exceeds int64.
+	body := `{
+		"uuid": "subnet-ipv6-1",
+		"network": 1,
+		"network_uuid": "net1",
+		"subnet": "2a00:1f00::/64",
+		"gateway": null,
+		"broadcast": null,
+		"free": 18446744073709551616
+	}`
+
+	var subnet Subnet
+	err := json.Unmarshal([]byte(body), &subnet)
+
+	require.NoError(t, err)
+	require.Equal(t, FreeCount("18446744073709551616"), subnet.Free)
+	require.Nil(t, subnet.Gateway)
+	require.Nil(t, subnet.Broadcast)
+}
+
+func TestSubnet_UnmarshalJSON_IPv6AsteriskFree(t *testing.T) {
+	// Simulates an API response for an IPv6 subnet where "free" is "*".
+	body := `{
+		"uuid": "subnet-ipv6-2",
+		"network": 1,
+		"network_uuid": "net1",
+		"subnet": "2a00:1f00::/64",
+		"gateway": null,
+		"broadcast": null,
+		"free": "*"
+	}`
+
+	var subnet Subnet
+	err := json.Unmarshal([]byte(body), &subnet)
+
+	require.NoError(t, err)
+	require.Equal(t, FreeCount("*"), subnet.Free)
+	require.Nil(t, subnet.Gateway)
+	require.Nil(t, subnet.Broadcast)
 }
