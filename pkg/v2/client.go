@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -97,8 +98,6 @@ type RequestHeader struct {
 
 // DoRequestWithoutAuth performs the HTTP request with the current ServiceClient's HTTPClient.
 // Authentication and optional headers will be added automatically.
-//
-//nolint:bodyclose
 func (client *ServiceClient) DoRequestWithoutAuth(
 	ctx context.Context, method, path string, body io.Reader, headers ...*RequestHeader,
 ) (*ResponseResult, error) {
@@ -123,6 +122,14 @@ func (client *ServiceClient) DoRequestWithoutAuth(
 		return nil, err
 	}
 
+	// Read the response body immediately and close the network stream so the
+	// connection is returned to the pool. The body is replaced with an in-memory
+	// reader so downstream callers can still read it via ExtractResult.
+	_, err = readResponseBody(response)
+	if err != nil {
+		return nil, err
+	}
+
 	responseResult := &ResponseResult{
 		Response: response,
 	}
@@ -140,8 +147,6 @@ func (client *ServiceClient) DoRequestWithoutAuth(
 
 // DoRequest performs the HTTP request with the current ServiceClient's HTTPClient.
 // Authentication and optional headers will be added automatically.
-//
-//nolint:bodyclose
 func (client *ServiceClient) DoRequest(
 	ctx context.Context, method, path string, body io.Reader, headers ...*RequestHeader,
 ) (*ResponseResult, error) {
@@ -167,6 +172,14 @@ func (client *ServiceClient) DoRequest(
 		return nil, err
 	}
 
+	// Read the response body immediately and close the network stream so the
+	// connection is returned to the pool. The body is replaced with an in-memory
+	// reader so downstream callers can still read it via ExtractResult.
+	_, err = readResponseBody(response)
+	if err != nil {
+		return nil, err
+	}
+
 	responseResult := &ResponseResult{
 		Response: response,
 	}
@@ -180,6 +193,27 @@ func (client *ServiceClient) DoRequest(
 	}
 
 	return responseResult, nil
+}
+
+// readResponseBody reads the full response body into memory, closes the original
+// network stream (so the connection is returned to the pool), and replaces
+// response.Body with an in-memory reader. Subsequent calls to response.Body.Close()
+// become no-ops.
+func readResponseBody(response *http.Response) ([]byte, error) {
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		_ = response.Body.Close()
+
+		return nil, err
+	}
+
+	if err := response.Body.Close(); err != nil {
+		return nil, err
+	}
+
+	response.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	return bodyBytes, nil
 }
 
 // buildURL safe build urls.
@@ -213,11 +247,12 @@ type ResponseResult struct {
 
 // ExtractResult allows to provide an object into which ResponseResult body will be extracted.
 func (result *ResponseResult) ExtractResult(to interface{}) error {
+	defer result.Body.Close()
+
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
 		return err
 	}
-	defer result.Body.Close()
 
 	return json.Unmarshal(body, to)
 }
@@ -226,11 +261,12 @@ const errGotHTTPStatusCodeFmt = "got the %d status code from the server"
 
 // extractErr populates an error message and error structure in the ResponseResult body.
 func (result *ResponseResult) extractErr() error {
+	defer result.Body.Close()
+
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
 		return err
 	}
-	defer result.Body.Close()
 
 	if len(body) == 0 {
 		result.Err = fmt.Errorf(errGotHTTPStatusCodeFmt, result.StatusCode)
