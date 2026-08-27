@@ -1,9 +1,10 @@
 package v2
 
 import (
-	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"slices"
 )
@@ -31,16 +32,55 @@ func (n Networks) FilterByTelematicsTypeHosting() Networks {
 	return result
 }
 
+// FreeCount represents the number of free IP addresses in a subnet.
+// It supports regular integer values, very large numbers for IPv6 subnets,
+// and special string values like "*" returned by the API for subnets with
+// an uncountable number of free addresses.
+type FreeCount string
+
+// UnmarshalJSON implements custom JSON unmarshaling for FreeCount.
+// It handles:
+//   - JSON numbers (including values exceeding int64): stored as their string representation
+//   - JSON strings (e.g. "*"): stored as-is
+//   - JSON null: stored as empty string
+func (f *FreeCount) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*f = ""
+
+		return nil
+	}
+
+	if data[0] == '"' {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+		*f = FreeCount(s)
+
+		return nil
+	}
+
+	// For JSON numbers, store as string representation.
+	// This avoids overflow for values exceeding int64 (e.g. IPv6 /64 → 2^64).
+	var raw json.Number
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*f = FreeCount(raw.String())
+
+	return nil
+}
+
 type (
 	Subnet struct {
-		UUID           string   `json:"uuid"`
-		Network        int      `json:"network"`
-		NetworkUUID    string   `json:"network_uuid"`
-		Subnet         string   `json:"subnet"`
-		Gateway        net.IP   `json:"gateway"`
-		Broadcast      net.IP   `json:"broadcast"`
-		ReservedVRRPIP []net.IP `json:"reserved_vrrp_ip"`
-		Free           int      `json:"free"`
+		UUID           string    `json:"uuid"`
+		Network        int       `json:"network"`
+		NetworkUUID    string    `json:"network_uuid"`
+		Subnet         string    `json:"subnet"`
+		Gateway        net.IP    `json:"gateway"`
+		Broadcast      net.IP    `json:"broadcast"`
+		ReservedVRRPIP []net.IP  `json:"reserved_vrrp_ip"`
+		Free           FreeCount `json:"free"`
 	}
 )
 
@@ -53,26 +93,49 @@ func (s *Subnet) ReservedVRRPIPAsStrings() []string {
 	return res
 }
 
+// getFreeIPMaxIterations limits the number of IP addresses examined by
+// GetFreeIP. For IPv6 subnets it prevents iterating over an enormous
+// address space (e.g. /64).
+const getFreeIPMaxIterations = 1 << 16 // 65536
+
 func (s *Subnet) GetFreeIP(reservedIPs ReservedIPs, isLocal bool) (net.IP, error) {
-	baseIP, ipNet, err := net.ParseCIDR(s.Subnet)
+	_, ipNet, err := net.ParseCIDR(s.Subnet)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing subnet %s: %s", s.Subnet, err)
 	}
 
-	base := ipToUint32(baseIP.Mask(ipNet.Mask))
+	isIPv4 := ipNet.IP.To4() != nil
 
+	// Convert the network base address to big.Int for uniform arithmetic.
+	base := ipToBigInt(ipNet.IP.Mask(ipNet.Mask))
+
+	// Compute the total number of addresses in the subnet.
 	ones, bits := ipNet.Mask.Size()
-	total := uint32(1) << uint32(bits-ones) //nolint:gosec
-	last := base + total
+	hostBits := bits - ones
+	if hostBits < 0 {
+		return nil, errors.New("invalid subnet mask")
+	}
+	total := new(big.Int).Lsh(big.NewInt(1), uint(hostBits))
 
-	if isLocal { // skip hidden gateway ip
-		base++
+	// Upper bound (one past the last address).
+	last := new(big.Int).Add(base, total)
+
+	// Start searching from the first candidate address.
+	cur := new(big.Int).Set(base)
+	if isLocal {
+		cur.Add(cur, big.NewInt(2)) // skip network addr + hidden gateway
+	} else {
+		cur.Add(cur, big.NewInt(1)) // skip network addr
 	}
 
-	for cur := base + 1; cur < last; cur++ {
-		currentIP := uint32ToIP(cur)
+	for i := 0; i < getFreeIPMaxIterations; i++ {
+		if cur.Cmp(last) >= 0 {
+			break
+		}
 
-		isReservedVRRP := slices.ContainsFunc(s.ReservedVRRPIP, func(ip net.IP) bool { // is reserved VRRP
+		currentIP := bigIntToIP(cur, isIPv4)
+
+		isReservedVRRP := slices.ContainsFunc(s.ReservedVRRPIP, func(ip net.IP) bool {
 			return currentIP.Equal(ip)
 		})
 
@@ -81,21 +144,23 @@ func (s *Subnet) GetFreeIP(reservedIPs ReservedIPs, isLocal bool) (net.IP, error
 		})
 
 		switch {
-		case currentIP.Equal(s.Gateway):
-			continue
+		case s.Gateway != nil && currentIP.Equal(s.Gateway):
+			// skip gateway
 
-		case currentIP.Equal(s.Broadcast):
-			continue
+		case s.Broadcast != nil && currentIP.Equal(s.Broadcast):
+			// skip broadcast (IPv4 only; IPv6 has no broadcast)
 
 		case isReservedVRRP:
-			continue
+			// skip VRRP
 
 		case isReserved:
-			continue
+			// skip reserved
 
 		default:
 			return currentIP, nil
 		}
+
+		cur.Add(cur, big.NewInt(1))
 	}
 
 	return nil, errors.New("no free IP found")
@@ -127,16 +192,34 @@ func (s Subnets) FindBySubnet(subnet string) *Subnet {
 	return nil
 }
 
-// ipToUint32 converts a 4-byte net.IP to uint32.
-func ipToUint32(ip net.IP) uint32 {
-	return binary.BigEndian.Uint32(ip.To4())
+// ipToBigInt converts a net.IP to a big.Int.
+// For IPv4 addresses it uses the 4-byte representation.
+// For IPv6 addresses it uses the 16-byte representation.
+func ipToBigInt(ip net.IP) *big.Int {
+	if v4 := ip.To4(); v4 != nil {
+		return new(big.Int).SetBytes(v4)
+	}
+
+	return new(big.Int).SetBytes(ip.To16())
 }
 
-// uint32ToIP converts uint32 back to net.IP (always 4 bytes).
-func uint32ToIP(n uint32) net.IP {
-	var b [4]byte
-	binary.BigEndian.PutUint32(b[:], n)
-	return b[:]
+// bigIntToIP converts a big.Int to a net.IP.
+// If isIPv4 is true, returns a 4-byte (IPv4) address.
+// Otherwise returns a 16-byte (IPv6) address.
+func bigIntToIP(n *big.Int, isIPv4 bool) net.IP {
+	b := n.Bytes()
+	if isIPv4 {
+		if len(b) < 4 {
+			b = append(make([]byte, 4-len(b)), b...)
+		}
+
+		return net.IP(b)
+	}
+	if len(b) < 16 {
+		b = append(make([]byte, 16-len(b)), b...)
+	}
+
+	return net.IP(b)
 }
 
 type (
