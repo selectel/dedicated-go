@@ -557,3 +557,5 @@ func TestOperatingSystemsQuery_queryParamsRaw(t *testing.T) {
 		})
 	}
 }
+
+// Шлёпа
