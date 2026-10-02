@@ -150,6 +150,15 @@ func (client *ServiceClient) DoRequestWithoutAuth(
 func (client *ServiceClient) DoRequest(
 	ctx context.Context, method, path string, body io.Reader, headers ...*RequestHeader,
 ) (*ResponseResult, error) {
+	return client.doRequest(ctx, method, path, body, true, headers)
+}
+
+// doRequest performs the HTTP request with the current ServiceClient's HTTPClient and
+// populates the ResponseResult with the response body, authentication and optional headers.
+// The response body is fully read into memory and closed before returning.
+func (client *ServiceClient) doRequest(
+	ctx context.Context, method, path string, body io.Reader, withAuth bool, headers []*RequestHeader,
+) (*ResponseResult, error) {
 	// Prepare an HTTP request with the provided context.
 	request, err := http.NewRequestWithContext(ctx, method, path, body)
 	if err != nil {
@@ -157,7 +166,9 @@ func (client *ServiceClient) DoRequest(
 	}
 
 	request.Header.Set("User-Agent", client.userAgent)
-	request.Header.Set("X-Auth-Token", client.TokenID)
+	if withAuth {
+		request.Header.Set("X-Auth-Token", client.TokenID)
+	}
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
@@ -171,6 +182,14 @@ func (client *ServiceClient) DoRequest(
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	response.Body = io.NopCloser(bytes.NewReader(responseBody))
 
 	// Read the response body immediately and close the network stream so the
 	// connection is returned to the pool. The body is replaced with an in-memory
@@ -182,14 +201,12 @@ func (client *ServiceClient) DoRequest(
 
 	responseResult := &ResponseResult{
 		Response: response,
+		body:     responseBody,
 	}
 
 	// Check status code and populate custom error body with extended error message if it's possible.
 	if response.StatusCode >= http.StatusBadRequest {
-		err = responseResult.extractErr()
-	}
-	if err != nil {
-		return nil, err
+		responseResult.extractErr()
 	}
 
 	return responseResult, nil
@@ -243,6 +260,9 @@ type ResponseResult struct {
 
 	// Err contains an error that can be provided to a caller.
 	Err error
+
+	// body contains the raw response body read during the request execution.
+	body []byte
 }
 
 // ExtractResult allows to provide an object into which ResponseResult body will be extracted.
@@ -271,10 +291,8 @@ func (result *ResponseResult) extractErr() error {
 	if len(body) == 0 {
 		result.Err = fmt.Errorf(errGotHTTPStatusCodeFmt, result.StatusCode)
 
-		return nil
+		return
 	}
 
-	result.Err = fmt.Errorf(errGotHTTPStatusCodeFmt+": %s", result.StatusCode, string(body))
-
-	return nil
+	result.Err = fmt.Errorf(errGotHTTPStatusCodeFmt+": %s", result.StatusCode, string(result.body))
 }

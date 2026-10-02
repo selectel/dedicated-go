@@ -104,7 +104,7 @@ func (client *ServiceClient) GetNetworkLocalSubnet(ctx context.Context, subnetID
 
 	responseResult, err := client.DoRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, responseResult, err
+		return nil, nil, err
 	}
 	if responseResult.Err != nil {
 		return nil, responseResult, responseResult.Err
@@ -140,7 +140,7 @@ func (client *ServiceClient) CreateNetworkLocalSubnet(ctx context.Context, netwo
 
 	responseResult, err := client.DoRequest(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return nil, responseResult, err
+		return nil, nil, err
 	}
 	if responseResult.Err != nil {
 		return nil, responseResult, responseResult.Err
