@@ -206,7 +206,7 @@ func (client *ServiceClient) doRequest(
 
 	// Check status code and populate custom error body with extended error message if it's possible.
 	if response.StatusCode >= http.StatusBadRequest {
-		responseResult.extractErr()
+		responseResult.Err = responseResult.extractErr()
 	}
 
 	return responseResult, nil
@@ -291,8 +291,10 @@ func (result *ResponseResult) extractErr() error {
 	if len(body) == 0 {
 		result.Err = fmt.Errorf(errGotHTTPStatusCodeFmt, result.StatusCode)
 
-		return
+		return result.Err
 	}
 
 	result.Err = fmt.Errorf(errGotHTTPStatusCodeFmt+": %s", result.StatusCode, string(result.body))
+
+	return result.Err
 }
