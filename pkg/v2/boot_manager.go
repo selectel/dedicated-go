@@ -176,7 +176,5 @@ func (client *ServiceClient) InstallNewOS(
 		return responseResult, responseResult.Err
 	}
 
-	defer func() { _ = responseResult.Body.Close() }()
-
 	return responseResult, nil
 }

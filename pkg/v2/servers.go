@@ -351,8 +351,6 @@ func (client *ServiceClient) DeleteResource(
 		return responseResult, responseResult.Err
 	}
 
-	defer func() { _ = responseResult.Body.Close() }()
-
 	return responseResult, nil
 }
 
